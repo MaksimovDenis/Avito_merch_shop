@@ -11,6 +11,7 @@ import (
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/closer"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/config"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 

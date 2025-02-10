@@ -1,7 +1,8 @@
 package main
 
-import "fmt"
+import "context"
 
 func main() {
-	fmt.Println("Hello!")
+	ctx := context.Background()
+
 }

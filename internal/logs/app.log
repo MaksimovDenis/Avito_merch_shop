@@ -1,0 +1,38 @@
+{"level":"error","module":"repository","error":"no rows in result set","time":"2025-02-12T23:32:23+03:00","message":"GetUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:32:23+03:00","message":"failed to get user from storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:32:23+03:00","message":"failed to auth user"}
+{"level":"error","module":"repository","error":"no rows in result set","time":"2025-02-12T23:35:56+03:00","message":"GetUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:35:56+03:00","message":"failed to get user from storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:35:56+03:00","message":"failed to auth user"}
+{"level":"error","module":"repository","error":"no rows in result set","time":"2025-02-12T23:36:04+03:00","message":"GetUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:36:04+03:00","message":"failed to get user from storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:36:04+03:00","message":"failed to auth user"}
+{"level":"error","module":"repository","error":"no rows in result set","time":"2025-02-12T23:42:38+03:00","message":"GetUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:42:38+03:00","message":"failed to get user from storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:42:38+03:00","message":"failed to auth user"}
+{"level":"warn","module":"repository","username":"admin","time":"2025-02-12T23:46:39+03:00","message":"GetUser: user not found"}
+{"level":"error","module":"repository","error":"ERROR: INSERT has more target columns than expressions (SQLSTATE 42601)","time":"2025-02-12T23:46:39+03:00","message":"CreateUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:46:39+03:00","message":"failed to create new user in storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:46:39+03:00","message":"failed to auth user"}
+{"level":"warn","module":"repository","username":"admin","time":"2025-02-12T23:47:08+03:00","message":"GetUser: user not found"}
+{"level":"error","module":"repository","error":"ERROR: INSERT has more target columns than expressions (SQLSTATE 42601)","time":"2025-02-12T23:47:16+03:00","message":"CreateUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:47:16+03:00","message":"failed to create new user in storage"}
+{"level":"warn","module":"repository","username":"admin","time":"2025-02-12T23:48:11+03:00","message":"GetUser: user not found"}
+{"level":"error","module":"repository","error":"ERROR: INSERT has more target columns than expressions (SQLSTATE 42601)","time":"2025-02-12T23:48:11+03:00","message":"CreateUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:48:11+03:00","message":"failed to create new user in storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:48:11+03:00","message":"failed to auth user"}
+{"level":"warn","module":"repository","username":"admin","time":"2025-02-12T23:48:33+03:00","message":"GetUser: user not found"}
+{"level":"warn","module":"repository","username":"admin","time":"2025-02-12T23:51:08+03:00","message":"GetUser: user not found"}
+{"level":"error","module":"repository","error":"number of field descriptions must equal number of destinations, got 2 and 3","time":"2025-02-12T23:51:08+03:00","message":"CreateUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:51:08+03:00","message":"failed to create new user in storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:51:08+03:00","message":"failed to auth user"}
+{"level":"warn","module":"repository","username":"admin1","time":"2025-02-12T23:52:19+03:00","message":"GetUser: user not found"}
+{"level":"error","module":"repository","error":"number of field descriptions must equal number of destinations, got 2 and 3","time":"2025-02-12T23:52:19+03:00","message":"CreateUser: failed to execute query"}
+{"level":"error","module":"service","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:52:19+03:00","message":"failed to create new user in storage"}
+{"level":"error","module":"api","error":"rpc error: code = Internal desc = Internal server error","time":"2025-02-12T23:52:19+03:00","message":"failed to auth user"}
+{"level":"warn","module":"repository","username":"admin2","time":"2025-02-12T23:56:30+03:00","message":"GetUser: user not found"}
+{"level":"warn","module":"repository","username":"admin2","time":"2025-02-12T23:58:22+03:00","message":"GetUser: user not found"}
+{"level":"warn","module":"repository","username":"admin","time":"2025-02-12T23:58:54+03:00","message":"GetUser: user not found"}
+{"level":"error","module":"service","error":"crypto/bcrypt: hashedPassword is not the hash of the given password","time":"2025-02-12T23:59:00+03:00","message":"password mismatch"}
+{"level":"error","module":"api","error":"crypto/bcrypt: hashedPassword is not the hash of the given password","time":"2025-02-12T23:59:00+03:00","message":"failed to auth user"}
+{"level":"warn","module":"repository","username":"admi","time":"2025-02-12T23:59:06+03:00","message":"GetUser: user not found"}

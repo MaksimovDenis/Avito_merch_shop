@@ -8,6 +8,9 @@ import (
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/pg"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/transaction"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/config"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/handler"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/repository"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/service"
 	"github.com/MaksimovDenis/Avito_merch_shop/pkg/token"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -18,17 +21,17 @@ type serviceProvider struct {
 	serverConfig config.ServerConfig
 	tokenConfig  config.TokenConfig
 
-	dbClient  db.Client
-	txManager db.TxManager
-	//appRepository *repository.Repository
+	dbClient      db.Client
+	txManager     db.TxManager
+	appRepository *repository.Repository
 
-	//appService *service.Service
+	appService *service.Service
 
 	tokenMaker *token.JWTMaker
 
 	log zerolog.Logger
 
-	//handler *handler.Handler
+	handler *handler.Handler
 }
 
 func newServiceProvider() *serviceProvider {
@@ -129,4 +132,39 @@ func (srv *serviceProvider) TokenMaker(ctx context.Context) *token.JWTMaker {
 	}
 
 	return srv.tokenMaker
+}
+
+func (srv *serviceProvider) AppRepository(ctx context.Context) *repository.Repository {
+	if srv.appRepository == nil {
+		srv.appRepository = repository.NewRepository(
+			srv.DBClient(ctx),
+			srv.log.With().Str("module", "repository").Logger(),
+		)
+	}
+
+	return srv.appRepository
+}
+
+func (srv *serviceProvider) AppService(ctx context.Context) *service.Service {
+	if srv.appService == nil {
+		srv.appService = service.NewService(
+			*srv.AppRepository(ctx),
+			srv.TxManager(ctx),
+			*srv.TokenMaker(ctx),
+			srv.log.With().Str("module", "service").Logger(),
+		)
+	}
+
+	return srv.appService
+}
+
+func (srv *serviceProvider) AppHandler(ctx context.Context) *handler.Handler {
+	if srv.handler == nil {
+		srv.handler = handler.NewHandler(
+			*srv.AppService(ctx),
+			*srv.TokenMaker(ctx),
+			srv.log.With().Str("module", "api").Logger(),
+		)
+	}
+	return srv.handler
 }

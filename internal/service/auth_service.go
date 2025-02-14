@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/models"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/repository"
 	"github.com/MaksimovDenis/Avito_merch_shop/pkg/token"
@@ -22,20 +21,17 @@ type Authorization interface {
 
 type AuthService struct {
 	appRepository repository.Repository
-	txManager     db.TxManager
 	token         token.JWTMaker
 	log           zerolog.Logger
 }
 
 func newAuthService(
 	appRepository repository.Repository,
-	txManager db.TxManager,
 	token token.JWTMaker,
 	log zerolog.Logger,
 ) *AuthService {
 	return &AuthService{
 		appRepository: appRepository,
-		txManager:     txManager,
 		token:         token,
 		log:           log,
 	}

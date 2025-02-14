@@ -8,11 +8,13 @@ import (
 )
 
 type Service struct {
-	Authorization Authorization
+	Authorization
+	Shop
 }
 
-func NewService(repos repository.Repository, txManager db.TxManager, token token.JWTMaker, log zerolog.Logger) *Service {
+func NewService(repos repository.Repository, client db.Client, token token.JWTMaker, log zerolog.Logger) *Service {
 	return &Service{
-		Authorization: newAuthService(repos, txManager, token, log),
+		Authorization: newAuthService(repos, token, log),
+		Shop:          newShopService(repos, client, log),
 	}
 }

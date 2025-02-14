@@ -149,7 +149,7 @@ func (srv *serviceProvider) AppService(ctx context.Context) *service.Service {
 	if srv.appService == nil {
 		srv.appService = service.NewService(
 			*srv.AppRepository(ctx),
-			srv.TxManager(ctx),
+			srv.DBClient(ctx),
 			*srv.TokenMaker(ctx),
 			srv.log.With().Str("module", "service").Logger(),
 		)

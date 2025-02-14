@@ -29,7 +29,7 @@ func newAuthRepository(db db.Client, log zerolog.Logger) *AuthRepo {
 	}
 }
 
-func (auth *AuthRepo) CreateUser(ctx context.Context, user *models.AuthReq) (*models.User, error) {
+func (ar *AuthRepo) CreateUser(ctx context.Context, user *models.AuthReq) (*models.User, error) {
 	builder := squirrel.Insert("users").
 		PlaceholderFormat(squirrel.Dollar).
 		Columns("username", "password_hash").
@@ -38,7 +38,7 @@ func (auth *AuthRepo) CreateUser(ctx context.Context, user *models.AuthReq) (*mo
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		auth.log.Error().Err(err).Msg("CreateUser: failed to build SQL query")
+		ar.log.Error().Err(err).Msg("CreateUser: failed to build SQL query")
 		return nil, err
 	}
 
@@ -49,17 +49,17 @@ func (auth *AuthRepo) CreateUser(ctx context.Context, user *models.AuthReq) (*mo
 
 	res := &models.User{}
 
-	err = auth.db.DB().QueryRowContext(ctx, queryStruct, args...).
+	err = ar.db.DB().QueryRowContext(ctx, queryStruct, args...).
 		Scan(&res.Id, &res.Username, &res.Coins)
 	if err != nil {
-		auth.log.Error().Err(err).Msg("CreateUser: failed to execute query")
+		ar.log.Error().Err(err).Msg("CreateUser: failed to execute query")
 		return nil, status.Errorf(codes.Internal, "failed to create user: %v", err)
 	}
 
 	return res, nil
 }
 
-func (auth *AuthRepo) GetUser(ctx context.Context, username string) (*models.User, error) {
+func (ar *AuthRepo) GetUser(ctx context.Context, username string) (*models.User, error) {
 	builder := squirrel.Select("*").
 		PlaceholderFormat(squirrel.Dollar).
 		From("users").
@@ -67,7 +67,7 @@ func (auth *AuthRepo) GetUser(ctx context.Context, username string) (*models.Use
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		auth.log.Error().Err(err).Msg("GetUser: failed to build SQL query")
+		ar.log.Error().Err(err).Msg("GetUser: failed to build SQL query")
 		return nil, err
 	}
 
@@ -78,14 +78,14 @@ func (auth *AuthRepo) GetUser(ctx context.Context, username string) (*models.Use
 
 	res := &models.User{}
 
-	err = auth.db.DB().QueryRowContext(ctx, queryStruct, args...).
+	err = ar.db.DB().QueryRowContext(ctx, queryStruct, args...).
 		Scan(&res.Id, &res.Username, &res.Password, &res.Coins)
 	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
-		auth.log.Warn().Str("username", username).Msg("GetUser: user not found")
+		ar.log.Warn().Str("username", username).Msg("GetUser: user not found")
 
 		return nil, status.Errorf(codes.NotFound, "User not found")
 	} else if err != nil {
-		auth.log.Error().Err(err).Msg("GetUser: failed to execute query")
+		ar.log.Error().Err(err).Msg("GetUser: failed to execute query")
 
 		return nil, status.Errorf(codes.Internal, "Internal server error")
 	}

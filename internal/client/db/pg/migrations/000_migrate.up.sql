@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    coins INT NOT NULL DEFAULT 1000
+    coins INT NOT NULL DEFAULT 1000 CHECK (coins >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS products (
@@ -30,3 +30,17 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+INSERT INTO products (name, price)
+VALUES 
+    ('t-shirt', 80),
+    ('cup', 20),
+    ('book', 50),
+    ('pen', 10),
+    ('powerbank', 200),
+    ('hoody', 300),
+    ('umbrella', 200),
+    ('socks', 10),
+    ('wallet', 50),
+    ('pink-hoody', 500)
+ON CONFLICT (name) DO NOTHING;

@@ -38,10 +38,6 @@ func (hdl *Handler) PostApiAuth(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-func (hdl *Handler) GetApiBuyItem(*gin.Context, string) {
-	return
-}
-
 func (hdl *Handler) GetApiInfo(*gin.Context) {
 	return
 }

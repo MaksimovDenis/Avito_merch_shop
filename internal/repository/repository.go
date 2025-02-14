@@ -7,8 +7,12 @@ import (
 
 type Repository struct {
 	Authorization
+	Shop
 }
 
 func NewRepository(db db.Client, log zerolog.Logger) *Repository {
-	return &Repository{Authorization: newAuthRepository(db, log)}
+	return &Repository{
+		Authorization: newAuthRepository(db, log),
+		Shop:          newShopRepository(db, log),
+	}
 }

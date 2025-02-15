@@ -13,7 +13,7 @@ func (hdl *Handler) PostApiAuth(ctx *gin.Context) {
 
 	if err := ctx.BindJSON(&authReq); err != nil {
 		hdl.log.Error().Err(err).Msg("failed to parse request body")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Не верно введены данные"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный запрос"})
 
 		return
 	}
@@ -36,12 +36,4 @@ func (hdl *Handler) PostApiAuth(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, res)
-}
-
-func (hdl *Handler) GetApiInfo(*gin.Context) {
-	return
-}
-
-func (hdl *Handler) PostApiSendCoin(*gin.Context) {
-	return
 }

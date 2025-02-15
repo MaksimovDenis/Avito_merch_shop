@@ -2,20 +2,24 @@ package repository
 
 import (
 	"context"
-	"strings"
 
 	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
-	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/pg"
+	errresponse "github.com/MaksimovDenis/Avito_merch_shop/internal/err_response"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/models"
 	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
 type Shop interface {
 	UpdateBalanceForPurchase(ctx context.Context, userId int, productName string) (*int, error)
 	InsertPurchaseRecord(ctx context.Context, userId int, productId int) error
-	SendCoin(ctx context.Context, sender string, receiver string, amount int) error
+	UserBalanceByName(ctx context.Context, username string) (userId int, coins int, err error)
+	UpdateSenderBalance(ctx context.Context, sender string, amount int) (senderId int, err error)
+	UpdateReceiverBalance(ctx context.Context, receiver string, amount int) (receiverId int, err error)
+	AddTransaction(ctx context.Context, senderId int, receiverId int, amount int) error
+	GetItemsByUserId(ctx context.Context, userId int) (*[]models.Items, error)
+	SentCoinsByUserId(ctx context.Context, userId int) (*[]models.SentCoins, error)
+	ReceivedCoinsByUserId(ctx context.Context, userId int) (*[]models.ReceivedCoins, error)
 }
 
 type ShopRepo struct {
@@ -44,7 +48,7 @@ func (sr *ShopRepo) UpdateBalanceForPurchase(ctx context.Context, userId int, pr
 	if err != nil {
 		sr.log.Error().Err(err).Msg("UpdateBalanceForPurchase: failed to build update SQL query")
 
-		return nil, errors.New("недостаточно монет для покупки")
+		return nil, errresponse.ErrResponse(err)
 	}
 
 	queryStruct := db.Query{
@@ -56,17 +60,8 @@ func (sr *ShopRepo) UpdateBalanceForPurchase(ctx context.Context, userId int, pr
 
 	err = sr.db.DB().QueryRowContext(ctx, queryStruct, args...).Scan(&productId)
 	if err != nil {
-		switch {
-		case strings.Contains(err.Error(), "violates check constraint"):
-			sr.log.Error().Err(err).Msg("UpdateBalanceForPurchase: not enough coins")
-			return nil, errors.New("недостаточно средств для покупки")
-		case strings.Contains(err.Error(), "no rows in result set"):
-			sr.log.Error().Err(err).Msgf("UpdateBalanceForPurchase: item %v not found", productName)
-			return nil, errors.New("товар " + productName + " не найден")
-		default:
-			sr.log.Error().Err(err).Msg("UpdateBalanceForPurchase: failed to update user data")
-			return nil, errors.New("ошибка при обновлении данных")
-		}
+		sr.log.Error().Err(err).Msg("UpdateBalanceForPurchase: failed to update user data")
+		return nil, errresponse.ErrResponse(err, productName)
 	}
 
 	return &productId, nil
@@ -80,7 +75,7 @@ func (sr *ShopRepo) InsertPurchaseRecord(ctx context.Context, userId int, produc
 	query, args, err := insertQuery.ToSql()
 	if err != nil {
 		sr.log.Error().Err(err).Msg("InsertPurchaseRecord: failed to build insert SQL query")
-		return err
+		return errresponse.ErrResponse(err)
 	}
 
 	queryStruct := db.Query{
@@ -91,140 +86,209 @@ func (sr *ShopRepo) InsertPurchaseRecord(ctx context.Context, userId int, produc
 	_, err = sr.db.DB().ExecContext(ctx, queryStruct, args...)
 	if err != nil {
 		sr.log.Error().Err(err).Msg("InsertPurchaseRecord: failed to insert purchase")
-		return err
+		return errresponse.ErrResponse(err)
 	}
 
 	return nil
 }
 
-func (sr *ShopRepo) SendCoin(ctx context.Context, sender string, receiver string, amount int) error {
-	tx, err := sr.db.DB().BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		sr.log.Error().Err(err).Msg("BuyItem: failed to start transaction")
-		return err
-	}
-
-	ctxWithTx := pg.MakeContextTx(ctx, tx)
-
-	// CHECK SENDER BALANCE
+func (sr *ShopRepo) UserBalanceByName(ctx context.Context, username string) (userId int, coins int, err error) {
 	selectQueryBalance := squirrel.Select("id", "coins").
 		PlaceholderFormat(squirrel.Dollar).
 		From("users").
-		Where(squirrel.Eq{"username": sender})
+		Where(squirrel.Eq{"username": username})
 
 	query, args, err := selectQueryBalance.ToSql()
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to build select SQL query")
-		_ = tx.Rollback(ctx)
-
-		return err
+		sr.log.Error().Err(err).Msg("UserBalanceByName: failed to build SQL query")
+		return 0, 0, errresponse.ErrResponse(err)
 	}
 
 	queryStruct := db.Query{
-		Name:     "user_repository.SendCoin",
+		Name:     "user_repository.UserBalanceByName",
 		QueryRow: query,
 	}
 
-	var coins int
-	var senderId int
-
-	err = sr.db.DB().QueryRowContext(ctxWithTx, queryStruct, args...).Scan(&coins, &senderId)
+	err = sr.db.DB().QueryRowContext(ctx, queryStruct, args...).Scan(&userId, &coins)
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to get sender balance")
-		_ = tx.Rollback(ctx)
+		sr.log.Error().Err(err).Msg("UserBalanceByName: failed to get sender balance")
 
-		return err
+		return 0, 0, errresponse.ErrResponse(err, username)
 	}
 
-	if coins < amount {
-		_ = tx.Rollback(ctx)
-		return errors.Errorf("недостаточно денег")
-	}
+	return userId, coins, nil
+}
 
-	// UPDATE SENEDER BALANCE
-	updateQuerySender := squirrel.Update("users").PlaceholderFormat(squirrel.Dollar).
+func (sr *ShopRepo) UpdateSenderBalance(ctx context.Context, sender string, amount int) (senderId int, err error) {
+	updateQuerySender := squirrel.Update("users").
+		PlaceholderFormat(squirrel.Dollar).
 		Set("coins", squirrel.Expr("coins - ?", amount)).
-		From("users").
-		Where(squirrel.Eq{"username": sender})
+		Where(squirrel.Eq{"username": sender}).
+		Suffix("RETURNING id")
 
-	query, args, err = updateQuerySender.ToSql()
+	query, args, err := updateQuerySender.ToSql()
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to build update SQL query")
-		_ = tx.Rollback(ctx)
+		sr.log.Error().Err(err).Msg("UpdateSenderBalance: failed to build update SQL query")
 
-		return err
+		return 0, errresponse.ErrResponse(err)
 	}
 
-	queryStruct = db.Query{
-		Name:     "user_repository.SendCoin",
+	queryStruct := db.Query{
+		Name:     "user_repository.UpdateSenderBalance",
 		QueryRow: query,
 	}
 
-	_, err = sr.db.DB().ExecContext(ctxWithTx, queryStruct, args...)
+	err = sr.db.DB().QueryRowContext(ctx, queryStruct, args...).Scan(&senderId)
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to update sender balance")
-		_ = tx.Rollback(ctx)
+		sr.log.Error().Err(err).Msg("UpdateSenderBalance: failed to update sender balance")
 
-		return err
+		return 0, errresponse.ErrResponse(err, sender)
 	}
 
-	// UPDATE RECEIVER BALANCE
-	updateQueryReceiver := squirrel.Update("users").
+	return senderId, nil
+}
+
+func (sr *ShopRepo) UpdateReceiverBalance(ctx context.Context, receiver string, amount int) (receiverId int, err error) {
+	updateQuerySender := squirrel.Update("users").
 		PlaceholderFormat(squirrel.Dollar).
 		Set("coins", squirrel.Expr("coins + ?", amount)).
-		From("users").
 		Where(squirrel.Eq{"username": receiver}).
 		Suffix("RETURNING id")
 
-	query, args, err = updateQueryReceiver.ToSql()
+	query, args, err := updateQuerySender.ToSql()
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to build update SQL query")
-		_ = tx.Rollback(ctx)
+		sr.log.Error().Err(err).Msg("UpdateReceiverBalance: failed to build update SQL query")
 
-		return err
+		return 0, errresponse.ErrResponse(err)
 	}
 
-	queryStruct = db.Query{
-		Name:     "user_repository.SendCoin",
+	queryStruct := db.Query{
+		Name:     "user_repository.UpdateReceiverBalance",
 		QueryRow: query,
 	}
 
-	var receiverId int
-
-	err = sr.db.DB().QueryRowContext(ctxWithTx, queryStruct, args...).Scan(&receiverId)
+	err = sr.db.DB().QueryRowContext(ctx, queryStruct, args...).Scan(&receiverId)
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to update reciver balance")
-		_ = tx.Rollback(ctx)
+		sr.log.Error().Err(err).Msg("UpdateReceiverBalance: failed to update receiver balance")
 
-		return err
+		return 0, errresponse.ErrResponse(err, receiver)
 	}
 
-	// INSERT TRANSACTION
+	return receiverId, nil
+}
+
+func (sr *ShopRepo) AddTransaction(ctx context.Context, senderId int, receiverId int, amount int) error {
 	insertQueryTransact := squirrel.Insert("transactions").
 		PlaceholderFormat(squirrel.Dollar).
 		Columns("sender_id", "receiver_id", "amount").
 		Values(senderId, receiverId, amount)
 
-	query, args, err = insertQueryTransact.ToSql()
+	query, args, err := insertQueryTransact.ToSql()
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to build update SQL query")
-		_ = tx.Rollback(ctx)
-
-		return err
+		sr.log.Error().Err(err).Msg("AddTransaction: failed to build update SQL query")
+		return errresponse.ErrResponse(err)
 	}
 
-	queryStruct = db.Query{
-		Name:     "user_repository.SendCoin",
+	queryStruct := db.Query{
+		Name:     "user_repository.AddTransaction",
 		QueryRow: query,
 	}
 
-	_, err = sr.db.DB().ExecContext(ctxWithTx, queryStruct, args...)
+	_, err = sr.db.DB().ExecContext(ctx, queryStruct, args...)
 	if err != nil {
-		sr.log.Error().Err(err).Msg("SendCoin: failed to add transaction")
-		_ = tx.Rollback(ctx)
-
-		return err
+		sr.log.Error().Err(err).Msg("AddTransaction: failed to add transaction")
+		return errresponse.ErrResponse(err)
 	}
 
-	return tx.Commit(ctx)
+	return nil
+}
+
+func (sr *ShopRepo) GetItemsByUserId(ctx context.Context, userId int) (*[]models.Items, error) {
+	builder := squirrel.Select("p.name as name", "sum(pu.quantity) as quantity").
+		PlaceholderFormat(squirrel.Dollar).
+		From("purchases as pu").
+		Join("products as p ON pu.products_id = p.id").
+		Where(squirrel.Eq{"pu.user_id": userId}).
+		GroupBy("name")
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		sr.log.Error().Err(err).Msg("GetItemsByUserId: failed to build update SQL query")
+		return nil, errresponse.ErrResponse(err)
+	}
+
+	queryStruct := db.Query{
+		Name:     "user_repository.GetItemsByUserId",
+		QueryRow: query,
+	}
+
+	var items []models.Items
+
+	err = sr.db.DB().ScanAllContext(ctx, &items, queryStruct, args...)
+	if err != nil {
+		sr.log.Error().Err(err).Msg("GetItemsByUserId: failed to scan rows")
+		return nil, errresponse.ErrResponse(err)
+	}
+
+	return &items, nil
+}
+
+func (sr *ShopRepo) SentCoinsByUserId(ctx context.Context, userId int) (*[]models.SentCoins, error) {
+	builder := squirrel.Select("us.username as to_user", "sum(amount) as amount").
+		PlaceholderFormat(squirrel.Dollar).
+		From("users as us").
+		Join("transactions t on us.id = t.sender_id").
+		Where(squirrel.Eq{"us.id": userId}).
+		GroupBy("to_user")
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		sr.log.Error().Err(err).Msg("SentCoinsByUserId: failed to build update SQL query")
+		return nil, errresponse.ErrResponse(err)
+	}
+
+	queryStruct := db.Query{
+		Name:     "user_repository.SentCoinsByUserId",
+		QueryRow: query,
+	}
+
+	var sendCoins []models.SentCoins
+
+	err = sr.db.DB().ScanAllContext(ctx, &sendCoins, queryStruct, args...)
+	if err != nil {
+		sr.log.Error().Err(err).Msg("SentCoinsByUserId: failed to scan rows")
+		return nil, errresponse.ErrResponse(err)
+	}
+
+	return &sendCoins, nil
+}
+
+func (sr *ShopRepo) ReceivedCoinsByUserId(ctx context.Context, userId int) (*[]models.ReceivedCoins, error) {
+	builder := squirrel.Select("us.username as from_user", "sum(amount) as amount").
+		PlaceholderFormat(squirrel.Dollar).
+		From("users as us").
+		Join("transactions t on us.id = t.receiver_id").
+		Where(squirrel.Eq{"us.id": userId}).
+		GroupBy("from_user")
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		sr.log.Error().Err(err).Msg("ReceivedCoinsByUserId: failed to build update SQL query")
+		return nil, errresponse.ErrResponse(err)
+	}
+
+	queryStruct := db.Query{
+		Name:     "user_repository.ReceivedCoinsByUserId",
+		QueryRow: query,
+	}
+
+	var receivedCoins []models.ReceivedCoins
+
+	err = sr.db.DB().ScanAllContext(ctx, &receivedCoins, queryStruct, args...)
+	if err != nil {
+		sr.log.Error().Err(err).Msg("ReceivedCoinsByUserId: failed to scan rows")
+		return nil, errresponse.ErrResponse(err)
+	}
+
+	return &receivedCoins, nil
 }

@@ -28,7 +28,7 @@ P.S. Миграции таблиц накатываются автоматиче
 - База данных: PostgreSQL:latest
 - В качестве билдера sql применялся squirrel 
 - Схема БД:  
-  (images/13.png)  
+ ![Схема БД](images/13.png)  
 - Логер zerolog   
 - Линитер golangci-lint:  
 

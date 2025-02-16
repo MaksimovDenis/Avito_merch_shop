@@ -6,6 +6,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSetupPostgresContainer(t *testing.T) {
@@ -21,6 +22,7 @@ func TestSetupPostgresContainer(t *testing.T) {
 	assert.True(t, containerInfo.State.Running)
 
 	defer func() {
-		cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		err := cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		require.NoError(t, err)
 	}()
 }

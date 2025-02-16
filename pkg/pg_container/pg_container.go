@@ -41,12 +41,14 @@ func SetupPostgresContainer(ctx context.Context, port string) (*client.Client, s
 	}
 
 	networkingConfig := &network.NetworkingConfig{}
+
 	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, networkingConfig, nil, "my_postgres"+port)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create docker container: %w", err)
 	}
 
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	err = cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
+	if err != nil {
 		return nil, "", fmt.Errorf("failed to start docker container: %w", err)
 	}
 

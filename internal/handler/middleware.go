@@ -34,11 +34,13 @@ func verifyClaimsFromAuthHeader(ctx *gin.Context, tokenMaker token.JWTMaker) (*t
 	}
 
 	fields := strings.Fields(authHeader)
+
 	if len(fields) != 2 || fields[0] != "Bearer" {
 		return nil, fmt.Errorf("invalid autorization header")
 	}
 
 	token := fields[1]
+
 	claims, err := tokenMaker.VerifyToken(token)
 	if err != nil {
 		return nil, fmt.Errorf("invalid token: %w", err)

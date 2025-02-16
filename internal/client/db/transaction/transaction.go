@@ -37,6 +37,7 @@ func (mgr *manager) transaction(ctx context.Context, opts pgx.TxOptions, fnc db.
 			if errRollBack := tx.Rollback(ctx); errRollBack != nil {
 				err = errors.Wrapf(err, "errRollback: %v", errRollBack)
 			}
+
 			return
 		}
 

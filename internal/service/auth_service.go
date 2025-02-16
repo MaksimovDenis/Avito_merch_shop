@@ -64,7 +64,6 @@ func (auth *AuthService) Auth(ctx context.Context, req models.AuthReq) (string, 
 	}
 
 	return auth.generateToken(user)
-
 }
 
 func (auth *AuthService) CreateUser(ctx context.Context, req models.AuthReq) (string, error) {
@@ -91,6 +90,7 @@ func (auth *AuthService) generateToken(user models.User) (string, error) {
 		auth.log.Error().Err(err).Msg("failed to create access token")
 		return "", err
 	}
+
 	return accessToken, nil
 }
 

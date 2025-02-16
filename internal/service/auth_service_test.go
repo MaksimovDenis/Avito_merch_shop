@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
@@ -20,13 +19,19 @@ import (
 func TestCreateUser(t *testing.T) {
 	ctx := context.Background()
 	port := "5990"
+
 	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+
+	defer func() {
+		err := cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		require.NoError(t, err)
+	}()
 
 	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
+
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +39,7 @@ func TestCreateUser(t *testing.T) {
 	defer clientDb.Close()
 
 	var log zerolog.Logger
+
 	var token token.JWTMaker
 
 	repo := repository.NewRepository(clientDb, log)
@@ -71,11 +77,13 @@ func TestCreateUser(t *testing.T) {
 			require.NoError(t, err)
 
 			var title string
+
 			query := db.Query{
 				Name:     "Create User",
 				QueryRow: "SELECT username FROM users WHERE id = 1",
 			}
-			_ = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
+
+			err = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
 			require.NoError(t, err)
 
 			if tt.wantErr {
@@ -90,13 +98,19 @@ func TestCreateUser(t *testing.T) {
 func TestAuth(t *testing.T) {
 	ctx := context.Background()
 	port := "5991"
+
 	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+
+	defer func() {
+		err := cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		require.NoError(t, err)
+	}()
 
 	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
+
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +118,7 @@ func TestAuth(t *testing.T) {
 	defer clientDb.Close()
 
 	var log zerolog.Logger
+
 	var token token.JWTMaker
 
 	repo := repository.NewRepository(clientDb, log)
@@ -170,6 +185,7 @@ func TestAuth(t *testing.T) {
 			_, err := authSvc.Auth(ctx, tt.args.auth)
 			if !tt.wantErr {
 				require.NoError(t, err)
+
 				var title string
 
 				query := db.Query{
@@ -177,11 +193,10 @@ func TestAuth(t *testing.T) {
 					QueryRow: "SELECT username FROM users WHERE id = 1",
 				}
 
-				_ = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
+				err = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
 				require.NoError(t, err)
 
-				fmt.Println(title)
-				assert.Equal(t, tt.args.auth.Username, tt.want)
+				assert.Equal(t, tt.want, title)
 			} else {
 				require.Error(t, err)
 			}

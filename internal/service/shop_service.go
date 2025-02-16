@@ -42,22 +42,22 @@ func newShopService(
 	}
 }
 
-func (ss *ShopService) BuyItem(ctx context.Context, userId int, productName string) error {
-	tx, err := ss.client.DB().BeginTx(ctx, pgx.TxOptions{})
+func (svc *ShopService) BuyItem(ctx context.Context, userId int, productName string) error {
+	tx, err := svc.client.DB().BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		ss.log.Error().Err(err).Msg("failed to start transaction")
+		svc.log.Error().Err(err).Msg("failed to start transaction")
 		return err
 	}
 
 	ctx = pg.MakeContextTx(ctx, tx)
 
-	productId, err := ss.appRepository.Shop.UpdateBalanceForPurchase(ctx, userId, productName)
+	productId, err := svc.appRepository.Shop.UpdateBalanceForPurchase(ctx, userId, productName)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}
 
-	if err := ss.appRepository.Shop.InsertPurchaseRecord(ctx, userId, *productId); err != nil {
+	if err := svc.appRepository.Shop.InsertPurchaseRecord(ctx, userId, *productId); err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}
@@ -65,7 +65,7 @@ func (ss *ShopService) BuyItem(ctx context.Context, userId int, productName stri
 	return tx.Commit(ctx)
 }
 
-func (ss *ShopService) SendCoins(ctx context.Context, sender string, receiver string, amount int) error {
+func (svc *ShopService) SendCoins(ctx context.Context, sender string, receiver string, amount int) error {
 	if amount <= 0 {
 		return errors.New("сумма перевода должна быть положительным числом")
 	}
@@ -74,40 +74,41 @@ func (ss *ShopService) SendCoins(ctx context.Context, sender string, receiver st
 		return errors.New("имя отправителя совпадает с именем получателя")
 	}
 
-	tx, err := ss.client.DB().BeginTx(ctx, pgx.TxOptions{})
+	tx, err := svc.client.DB().BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		ss.log.Error().Err(err).Msg("failed to start transaction")
+		svc.log.Error().Err(err).Msg("failed to start transaction")
 		return err
 	}
 
 	ctx = pg.MakeContextTx(ctx, tx)
 
-	_, senderBalance, err := ss.appRepository.Shop.UserBalanceByName(ctx, sender)
+	_, senderBalance, err := svc.appRepository.Shop.UserBalanceByName(ctx, sender)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}
 
 	if senderBalance < amount {
-		ss.log.Error().Err(err).Msg("not enough coins for transaction")
+		svc.log.Error().Err(err).Msg("not enough coins for transaction")
+
 		_ = tx.Rollback(ctx)
 
 		return errors.New("недостаточно монет для перевода")
 	}
 
-	senderId, err := ss.appRepository.Shop.UpdateSenderBalance(ctx, sender, amount)
+	senderId, err := svc.appRepository.Shop.UpdateSenderBalance(ctx, sender, amount)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}
 
-	receiverId, err := ss.appRepository.Shop.UpdateReceiverBalance(ctx, receiver, amount)
+	receiverId, err := svc.appRepository.Shop.UpdateReceiverBalance(ctx, receiver, amount)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}
 
-	if err = ss.appRepository.Shop.AddTransaction(ctx, senderId, receiverId, amount); err != nil {
+	if err = svc.appRepository.Shop.AddTransaction(ctx, senderId, receiverId, amount); err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}
@@ -115,46 +116,49 @@ func (ss *ShopService) SendCoins(ctx context.Context, sender string, receiver st
 	return tx.Commit(ctx)
 }
 
-func (ss *ShopService) Info(ctx context.Context, username string) (
+func (svc *ShopService) Info(ctx context.Context, username string) (
 	coins int,
 	items []models.Items,
 	sentCoins []models.SentCoins,
 	receivedCoins []models.ReceivedCoins,
 	err error,
 ) {
-	tx, err := ss.client.DB().BeginTx(ctx, pgx.TxOptions{})
+	tx, err := svc.client.DB().BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		ss.log.Error().Err(err).Msg("failed to start transaction")
+		svc.log.Error().Err(err).Msg("failed to start transaction")
 		return 0, nil, nil, nil, err
 	}
 
 	ctx = pg.MakeContextTx(ctx, tx)
 
-	userId, coins, err := ss.appRepository.Shop.UserBalanceByName(ctx, username)
+	userId, coins, err := svc.appRepository.Shop.UserBalanceByName(ctx, username)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
-	items, err = ss.appRepository.Shop.GetItemsByUserId(ctx, userId)
+	items, err = svc.appRepository.Shop.GetItemsByUserId(ctx, userId)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
-	sentCoins, err = ss.appRepository.Shop.SentCoinsByUserId(ctx, userId)
+	sentCoins, err = svc.appRepository.Shop.SentCoinsByUserId(ctx, userId)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
-	receivedCoins, err = ss.appRepository.Shop.ReceivedCoinsByUserId(ctx, userId)
+	receivedCoins, err = svc.appRepository.Shop.ReceivedCoinsByUserId(ctx, userId)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
-	tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		_ = tx.Rollback(ctx)
+		return 0, nil, nil, nil, err
+	}
 
 	return coins, items, sentCoins, receivedCoins, nil
 }

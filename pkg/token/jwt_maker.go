@@ -22,6 +22,7 @@ func (maker *JWTMaker) CreateToken(id int64, username string, duration time.Dura
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
 	tokenStr, err := token.SignedString([]byte(maker.secretKey))
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to sign token: %w", err)
@@ -39,6 +40,7 @@ func (maker *JWTMaker) VerifyToken(tokenStr string) (*UserClaims, error) {
 
 		return []byte(maker.secretKey), nil
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("error parsing token: %w", err)
 	}

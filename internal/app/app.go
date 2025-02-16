@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/closer"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/config"
@@ -30,13 +29,13 @@ func NewApp(ctx context.Context) (*App, error) {
 	return app, nil
 }
 
-func (app *App) Run() error {
+func (app *App) Run() {
 	defer func() {
 		closer.CloseAll()
 		closer.Wait()
 	}()
 
-	return app.runHTTPServer()
+	app.runHTTPServer()
 }
 
 func (app *App) initDeps(ctx context.Context) error {
@@ -51,7 +50,6 @@ func (app *App) initDeps(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
 	}
 
 	return nil
@@ -82,7 +80,7 @@ func (app *App) initHTTPServer(ctx context.Context) error {
 	return nil
 }
 
-func (app *App) runHTTPServer() error {
+func (app *App) runHTTPServer() {
 	log.Printf("HTTP server is running on %s", app.httpServer.Addr)
 
 	go func() {
@@ -96,13 +94,11 @@ func (app *App) runHTTPServer() error {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	if err := app.httpServer.Shutdown(ctx); err != nil {
 		log.Fatal().Err(err).Msg("HTTP server Shutdown")
 	}
 
 	log.Logger.Println("HTTP server existing")
-	return nil
 }

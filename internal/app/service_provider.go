@@ -56,6 +56,7 @@ func (srv *serviceProvider) initLogger() zerolog.Logger {
 	multiWriter := zerolog.MultiLevelWriter(os.Stdout, logFile)
 
 	logger := zerolog.New(multiWriter).Level(logLevel).With().Timestamp().Logger()
+
 	return logger
 }
 
@@ -100,17 +101,17 @@ func (srv *serviceProvider) TokenConfig() config.TokenConfig {
 
 func (srv *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if srv.dbClient == nil {
-		cl, err := pg.New(ctx, srv.PGConfig().DSN())
+		client, err := pg.New(ctx, srv.PGConfig().DSN())
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to create db client")
 		}
 
-		err = cl.DB().Ping(ctx)
+		err = client.DB().Ping(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("ping error")
 		}
 
-		srv.dbClient = cl
+		srv.dbClient = client
 	}
 
 	return srv.dbClient
@@ -166,5 +167,6 @@ func (srv *serviceProvider) AppHandler(ctx context.Context) *handler.Handler {
 			srv.log.With().Str("module", "api").Logger(),
 		)
 	}
+
 	return srv.handler
 }

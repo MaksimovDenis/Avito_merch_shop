@@ -15,8 +15,5 @@ func main() {
 		log.Fatalf("failed to init app: %s", err.Error())
 	}
 
-	err = merchShop.Run()
-	if err != nil {
-		log.Fatalf("failed to run app: %s", err.Error())
-	}
+	merchShop.Run()
 }

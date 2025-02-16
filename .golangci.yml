@@ -1,0 +1,44 @@
+run:
+  timeout: 5m
+
+linters-settings:
+  revive:
+    rules:
+      - name: empty-lines
+  varnamelen:
+    check-receiver: true
+    check-return: true
+    check-type-param: true
+    ignore-type-assert-ok: true
+    ignore-map-index-ok: true
+    ignore-chan-recv-ok: true
+    ignore-names:
+      - err
+      - ok
+      - tx
+      - id
+      - tc # testCase for tests
+      - tt # testCase for tests
+      - pg
+      - f # func(f)
+    ignore-decls:
+      - t testing.T
+      - T any
+      - e error
+      - w http.ResponseWriter
+      - r *http.Request
+      - wg *sync.WaitGroup
+      - wg sync.WaitGroup
+      - T comparable
+      - w io.Writer
+
+linters:
+  enable:
+    - revive
+    - bodyclose
+    - gocritic
+    - lll
+    - wsl
+    - gofmt
+    - unparam # disabled in CI
+    - varnamelen # disabled in CI

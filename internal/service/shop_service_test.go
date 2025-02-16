@@ -19,13 +19,19 @@ import (
 func TestByItem(t *testing.T) {
 	ctx := context.Background()
 	port := "5992"
+
 	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+
+	defer func() {
+		err := cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		require.NoError(t, err)
+	}()
 
 	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
+
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -33,6 +39,7 @@ func TestByItem(t *testing.T) {
 	defer clientDb.Close()
 
 	var log zerolog.Logger
+
 	var token token.JWTMaker
 
 	repo := repository.NewRepository(clientDb, log)
@@ -78,6 +85,7 @@ func TestByItem(t *testing.T) {
 			if !tt.wantErr {
 				err = auth.BuyItem(ctx, newUser.Id, "book")
 				require.NoError(t, err)
+
 				var item models.Items
 
 				query := db.Query{
@@ -105,14 +113,21 @@ func TestByItem(t *testing.T) {
 
 func TestSendCoin(t *testing.T) {
 	ctx := context.Background()
+
 	port := "5993"
+
 	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+
+	defer func() {
+		err := cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		require.NoError(t, err)
+	}()
 
 	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
+
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -120,6 +135,7 @@ func TestSendCoin(t *testing.T) {
 	defer clientDb.Close()
 
 	var log zerolog.Logger
+
 	var token token.JWTMaker
 
 	repo := repository.NewRepository(clientDb, log)
@@ -173,6 +189,7 @@ func TestSendCoin(t *testing.T) {
 			if !tt.wantErr {
 				err = auth.SendCoins(ctx, user1.Username, user2.Username, 100)
 				require.NoError(t, err)
+
 				var coins int
 
 				query := db.Query{
@@ -195,13 +212,19 @@ func TestSendCoin(t *testing.T) {
 func TestInfo(t *testing.T) {
 	ctx := context.Background()
 	port := "5994"
+
 	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+
+	defer func() {
+		err := cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
+		require.NoError(t, err)
+	}()
 
 	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
+
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -209,6 +232,7 @@ func TestInfo(t *testing.T) {
 	defer clientDb.Close()
 
 	var log zerolog.Logger
+
 	var token token.JWTMaker
 
 	repo := repository.NewRepository(clientDb, log)

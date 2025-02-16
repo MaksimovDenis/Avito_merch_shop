@@ -21,7 +21,6 @@ func (hdl *Handler) GetApiBuyItem(ctx *gin.Context, productName string) {
 
 	if err := hdl.appService.Shop.BuyItem(ctx, int(userId), productName); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-
 		return
 	}
 
@@ -50,7 +49,6 @@ func (hdl *Handler) PostApiSendCoin(ctx *gin.Context) {
 
 	if err := hdl.appService.Shop.SendCoins(ctx, sender, sendCoinsReq.ToUser, sendCoinsReq.Amount); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-
 		return
 	}
 
@@ -62,6 +60,7 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 	if !ok {
 		hdl.log.Error().Msg("user claims not found in context")
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+
 		return
 	}
 
@@ -73,7 +72,6 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		return
 	}
 
-	// Преобразуем Items в Inventory
 	var inventory []struct {
 		Quantity *int    `json:"quantity,omitempty"`
 		Type     *string `json:"type,omitempty"`
@@ -81,7 +79,7 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 
 	if len(items) != 0 {
 		for _, item := range items {
-			itemType := item.Name // В `InfoResponse` используется `Type` вместо `Name`
+			itemType := item.Name
 			quantity := item.Quantity
 			inventory = append(inventory, struct {
 				Quantity *int    `json:"quantity,omitempty"`
@@ -93,7 +91,6 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		}
 	}
 
-	// Преобразуем ReceivedCoins
 	var received []struct {
 		Amount   *int    `json:"amount,omitempty"`
 		FromUser *string `json:"fromUser,omitempty"`
@@ -113,7 +110,6 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		}
 	}
 
-	// Преобразуем SentCoins
 	var sent []struct {
 		Amount *int    `json:"amount,omitempty"`
 		ToUser *string `json:"toUser,omitempty"`
@@ -133,7 +129,6 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		}
 	}
 
-	// Формируем ответ
 	res := oapi.InfoResponse{
 		Coins:     &coins,
 		Inventory: &inventory,

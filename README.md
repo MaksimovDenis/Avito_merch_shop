@@ -5,11 +5,13 @@
 git clone https://github.com/MaksimovDenis/Avito_merch_shop.git
 ```
 ### 2. Перейти в директорию проекта (если Вы не в ней).  
-
+```bash  
+cd Avito_merch_shop  
+```  
 ### 3. Из дериктории проекта выполнить команды, сервис будет доступен по порту 8080:  
 ```bash      
 docker compose up --build 
-```
+```  
 ### 4. Остановка  
 ```bash      
 docker compose down

@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    coins INT NOT NULL DEFAULT 99999999 CHECK (coins >= 0)
+    coins INT NOT NULL DEFAULT 1000 CHECK (coins >= 0)
 );
 
 CREATE UNIQUE INDEX idx_users_username ON users (username);

@@ -51,6 +51,8 @@ func (auth *AuthService) Auth(ctx context.Context, req models.AuthReq) (string, 
 				return "", err
 			}
 
+			auth.log.Info().Msgf("user %v has been created", req.Username)
+
 			return accessToken, nil
 		} else {
 			auth.log.Error().Err(err).Msg("failed to get user from storage")

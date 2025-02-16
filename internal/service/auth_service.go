@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/models"
@@ -38,6 +39,10 @@ func newAuthService(
 }
 
 func (auth *AuthService) Auth(ctx context.Context, req *models.AuthReq) (string, error) {
+	if err := validateData(req); err != nil {
+		return "", err
+	}
+
 	user, err := auth.appRepository.Authorization.GetUser(ctx, req.Username)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -87,4 +92,17 @@ func (auth *AuthService) generateToken(user *models.User) (string, error) {
 		return "", err
 	}
 	return accessToken, nil
+}
+
+func validateData(user *models.AuthReq) error {
+	switch {
+	case user.Username == user.Password:
+		return errors.New("логин и пароль совпадают")
+	case user.Username == "":
+		return errors.New("заполните поле логин")
+	case user.Password == "":
+		return errors.New("заполните поле пароль")
+	default:
+		return nil
+	}
 }

@@ -15,8 +15,13 @@ import (
 type Shop interface {
 	BuyItem(ctx context.Context, userId int, productName string) error
 	SendCoin(ctx context.Context, sender string, receiver string, amount int) error
-	Info(ctx context.Context, username string) (coins int, items *[]models.Items, sentCoins *[]models.SentCoins, receivedCoins *[]models.ReceivedCoins, err error)
-	//Info(ctx context.Context, username string) (coins int, inventory *models.Inventory, coinsHistory *models.CoinHistory, err error)
+	Info(ctx context.Context, username string) (
+		coins int,
+		items *[]models.Items,
+		sentCoins *[]models.SentCoins,
+		receivedCoins *[]models.ReceivedCoins,
+		err error,
+	)
 }
 
 type ShopService struct {
@@ -62,7 +67,7 @@ func (ss *ShopService) BuyItem(ctx context.Context, userId int, productName stri
 
 func (ss *ShopService) SendCoin(ctx context.Context, sender string, receiver string, amount int) error {
 	if amount <= 0 {
-		return errors.New("сумма перевода должна быть положительной")
+		return errors.New("сумма перевода должна быть положительным числом")
 	}
 
 	if sender == receiver {

@@ -42,6 +42,11 @@ func newShopService(
 	}
 }
 
+// BuyItem обрабатывает покупку товара пользователем.
+// 1. Начинаем транзакцию в БД.
+// 2. Обновляем баланс пользователя при покупке товара.
+// 3. Записываем информацию о покупке в базу данных.
+// 4. Фиксируем транзакцию или откатываем при ошибке.
 func (svc *ShopService) BuyItem(ctx context.Context, userId int, productName string) error {
 	tx, err := svc.client.DB().BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
@@ -65,6 +70,13 @@ func (svc *ShopService) BuyItem(ctx context.Context, userId int, productName str
 	return tx.Commit(ctx)
 }
 
+// SendCoins выполняет перевод монет между пользователями.
+// 1. Проверяем корректность суммы и что отправитель и получатель не совпадают.
+// 2. Начинаем транзакцию в БД.
+// 3. Проверяем баланс отправителя.
+// 4. Обновляем баланс отправителя и получателя.
+// 5. Добавлям запись о транзакции в базу данных.
+// 6. Фиксируем транзакцию или откатывает при ошибке.
 func (svc *ShopService) SendCoins(ctx context.Context, sender string, receiver string, amount int) error {
 	if amount <= 0 {
 		return errors.New("сумма перевода должна быть положительным числом")
@@ -116,6 +128,12 @@ func (svc *ShopService) SendCoins(ctx context.Context, sender string, receiver s
 	return tx.Commit(ctx)
 }
 
+// Info предоставляет информацию о пользователе.
+// 1. Начинаем транзакцию в БД.
+// 2. Получаем баланс пользователя.
+// 3. Извлекаем список его покупок.
+// 4. Получаем историю отправленных и полученных монет.
+// 5. Фиксируем транзакцию или откатывает при ошибке.
 func (svc *ShopService) Info(ctx context.Context, username string) (
 	coins int,
 	items []models.Items,

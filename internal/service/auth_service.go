@@ -41,6 +41,11 @@ func newAuthService(
 	}
 }
 
+// Auth авторизирует или регистрирует нового пользователя.
+// 1. Валидируем поля запроса.
+// 2. Проверяем существует ли пользователя, если да, то выдаём токен,
+// если нет, то регестрируем и выдаём токен.
+// P.S. Жизнь токена увеличина до 24 часов для удобства работы.
 func (auth *AuthService) Auth(ctx context.Context, req models.AuthReq) (string, error) {
 	if err := validateData(req); err != nil {
 		return "", err

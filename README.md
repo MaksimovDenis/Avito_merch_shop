@@ -77,7 +77,7 @@ linters:
     - varnamelen # disabled in CI  
 ```    
 # ✅ Условия  
-1. Использовался приложенный к ТЗ API, без изменений: (https://github.com/MaksimovDenis/Avito_merch_shop/blob/main/pkg/protocol/oapi/schema.yml)✅    
+1. Использовался приложенный к ТЗ API, без изменений: https://github.com/MaksimovDenis/Avito_merch_shop/blob/main/pkg/protocol/oapi/schema.yml ✅    
 2. Пользовательский токен доступа к API выдается после авторизации/регистрации пользователя. При первой авторизации пользователь создаватёся автоматически.✅   
 3. Бизнес сценарии покрыты интеграционными (service) и юнит тестами.✅     
 4. Сотрудников может быть до 100к, RPS — 1k, SLI времени ответа — 50 мс, SLI успешности ответа — 99.99% ✅  

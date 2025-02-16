@@ -4,73 +4,29 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/pg"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/models"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/repository"
+	pgcontainer "github.com/MaksimovDenis/Avito_merch_shop/pkg/pg_container"
 	"github.com/MaksimovDenis/Avito_merch_shop/pkg/token"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateUser(t *testing.T) {
 	ctx := context.Background()
-
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	port := "5990"
+	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create docker client")
+		t.Fatal(err)
 	}
+	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
 
-	containerConfig := &container.Config{
-		Image: "postgres:latest",
-		Env: []string{
-			"POSTGRES_USER=admin",
-			"POSTGRES_PASSWORD=admin",
-			"POSTGRES_DB=testDB",
-		},
-		ExposedPorts: nat.PortSet{
-			"5432/tcp": struct{}{},
-		},
-	}
-
-	hostConfig := &container.HostConfig{
-		PortBindings: nat.PortMap{
-			"5432/tcp": []nat.PortBinding{
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: "5999",
-				},
-			},
-		},
-	}
-
-	networkingConfig := &network.NetworkingConfig{}
-	rmOpts := container.RemoveOptions{Force: true}
-
-	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, networkingConfig, nil, "my_postgres")
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create docker container")
-	}
-	defer cli.ContainerRemove(ctx, resp.ID, rmOpts)
-
-	var options container.StartOptions
-	if err := cli.ContainerStart(ctx, resp.ID, options); err != nil {
-		log.Error().Err(err).Msg("failed to start docker container")
-	}
-
-	fmt.Println("PostgreSQL контейнер запущен с ID:", resp.ID)
-
-	time.Sleep(5 * time.Second)
-
-	conStr := "postgres://admin:admin@localhost:5999/testDB?sslmode=disable"
+	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -83,34 +39,26 @@ func TestCreateUser(t *testing.T) {
 	repo := repository.NewRepository(clientDb, log)
 	authSvc := newAuthService(*repo, token, log)
 
-	type args struct {
-		auth *models.AuthReq
-	}
-
 	tests := []struct {
 		name    string
-		args    args
+		args    models.AuthReq
 		want    string
 		wantErr bool
 	}{
 		{
 			name: "OK",
-			args: args{
-				auth: &models.AuthReq{
-					Username: "userTest",
-					Password: "passwordTest",
-				},
+			args: models.AuthReq{
+				Username: "userTest",
+				Password: "passwordTest",
 			},
 			want:    "userTest",
 			wantErr: false,
 		},
 		{
 			name: "Error",
-			args: args{
-				auth: &models.AuthReq{
-					Username: "userTest2",
-					Password: "passwordTest",
-				},
+			args: models.AuthReq{
+				Username: "userTest2",
+				Password: "passwordTest",
 			},
 			want:    "userTest",
 			wantErr: true,
@@ -119,30 +67,21 @@ func TestCreateUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err = authSvc.appRepository.Authorization.CreateUser(ctx, tt.args.auth)
+			_, err = authSvc.appRepository.Authorization.CreateUser(ctx, tt.args)
 			require.NoError(t, err)
-			if !tt.wantErr {
-				var title string
 
-				query := db.Query{
-					Name:     "Create User",
-					QueryRow: "SELECT username FROM users WHERE id = 1",
-				}
+			var title string
+			query := db.Query{
+				Name:     "Create User",
+				QueryRow: "SELECT username FROM users WHERE id = 1",
+			}
+			_ = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
+			require.NoError(t, err)
 
-				_ = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
-				require.NoError(t, err)
-				assert.Equal(t, tt.args.auth.Username, tt.want)
+			if tt.wantErr {
+				assert.NotEqual(t, tt.args.Username, tt.want)
 			} else {
-				var title string
-
-				query := db.Query{
-					Name:     "Create User",
-					QueryRow: "SELECT username FROM users WHERE id = 1",
-				}
-
-				_ = clientDb.DB().QueryRowContext(ctx, query).Scan(&title)
-				require.NoError(t, err)
-				assert.NotEqual(t, tt.args.auth.Username, tt.want)
+				assert.Equal(t, tt.args.Username, tt.want)
 			}
 		})
 	}
@@ -150,54 +89,14 @@ func TestCreateUser(t *testing.T) {
 
 func TestAuth(t *testing.T) {
 	ctx := context.Background()
-
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	port := "5991"
+	cli, containerID, err := pgcontainer.SetupPostgresContainer(ctx, port)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create docker client")
+		t.Fatal(err)
 	}
+	defer cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
 
-	containerConfig := &container.Config{
-		Image: "postgres:latest",
-		Env: []string{
-			"POSTGRES_USER=admin",
-			"POSTGRES_PASSWORD=admin",
-			"POSTGRES_DB=testDB",
-		},
-		ExposedPorts: nat.PortSet{
-			"5432/tcp": struct{}{},
-		},
-	}
-
-	hostConfig := &container.HostConfig{
-		PortBindings: nat.PortMap{
-			"5432/tcp": []nat.PortBinding{
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: "5999",
-				},
-			},
-		},
-	}
-
-	networkingConfig := &network.NetworkingConfig{}
-	rmOpts := container.RemoveOptions{Force: true}
-
-	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, networkingConfig, nil, "my_postgres")
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create docker container")
-	}
-	defer cli.ContainerRemove(ctx, resp.ID, rmOpts)
-
-	var options container.StartOptions
-	if err := cli.ContainerStart(ctx, resp.ID, options); err != nil {
-		log.Error().Err(err).Msg("failed to start docker container")
-	}
-
-	fmt.Println("PostgreSQL контейнер запущен с ID:", resp.ID)
-
-	time.Sleep(5 * time.Second)
-
-	conStr := "postgres://admin:admin@localhost:5999/testDB?sslmode=disable"
+	conStr := "postgres://admin:admin@localhost:" + port + "/testDB?sslmode=disable"
 	clientDb, err := pg.New(ctx, conStr)
 	if err != nil {
 		t.Fatal(err)
@@ -211,7 +110,7 @@ func TestAuth(t *testing.T) {
 	authSvc := NewService(*repo, clientDb, token, log)
 
 	type args struct {
-		auth *models.AuthReq
+		auth models.AuthReq
 	}
 
 	tests := []struct {
@@ -223,7 +122,7 @@ func TestAuth(t *testing.T) {
 		{
 			name: "OK",
 			args: args{
-				auth: &models.AuthReq{
+				auth: models.AuthReq{
 					Username: "userTest",
 					Password: "passwordTest",
 				},
@@ -234,7 +133,7 @@ func TestAuth(t *testing.T) {
 		{
 			name: "Empty Username",
 			args: args{
-				auth: &models.AuthReq{
+				auth: models.AuthReq{
 					Username: "",
 					Password: "passwordTest",
 				},
@@ -245,7 +144,7 @@ func TestAuth(t *testing.T) {
 		{
 			name: "Empty Password",
 			args: args{
-				auth: &models.AuthReq{
+				auth: models.AuthReq{
 					Username: "userTest2",
 					Password: "",
 				},
@@ -256,7 +155,7 @@ func TestAuth(t *testing.T) {
 		{
 			name: "User==password",
 			args: args{
-				auth: &models.AuthReq{
+				auth: models.AuthReq{
 					Username: "admin",
 					Password: "admin",
 				},

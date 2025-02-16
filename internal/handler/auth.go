@@ -18,7 +18,7 @@ func (hdl *Handler) PostApiAuth(ctx *gin.Context) {
 		return
 	}
 
-	modelReq := &models.AuthReq{
+	modelReq := models.AuthReq{
 		Username: authReq.Username,
 		Password: authReq.Password,
 	}

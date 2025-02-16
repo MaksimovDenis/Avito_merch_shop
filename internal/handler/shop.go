@@ -48,7 +48,7 @@ func (hdl *Handler) PostApiSendCoin(ctx *gin.Context) {
 
 	sender := claims.(*token.UserClaims).UserName
 
-	if err := hdl.appService.Shop.SendCoin(ctx, sender, sendCoinsReq.ToUser, sendCoinsReq.Amount); err != nil {
+	if err := hdl.appService.Shop.SendCoins(ctx, sender, sendCoinsReq.ToUser, sendCoinsReq.Amount); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 		return
@@ -79,8 +79,8 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		Type     *string `json:"type,omitempty"`
 	}
 
-	if items != nil {
-		for _, item := range *items {
+	if len(items) != 0 {
+		for _, item := range items {
 			itemType := item.Name // В `InfoResponse` используется `Type` вместо `Name`
 			quantity := item.Quantity
 			inventory = append(inventory, struct {
@@ -99,8 +99,8 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		FromUser *string `json:"fromUser,omitempty"`
 	}
 
-	if receivedCoins != nil {
-		for _, rc := range *receivedCoins {
+	if len(receivedCoins) != 0 {
+		for _, rc := range receivedCoins {
 			amount := rc.Amount
 			fromUser := rc.FromUser
 			received = append(received, struct {
@@ -119,8 +119,8 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 		ToUser *string `json:"toUser,omitempty"`
 	}
 
-	if sentCoins != nil {
-		for _, sc := range *sentCoins {
+	if len(sentCoins) != 0 {
+		for _, sc := range sentCoins {
 			amount := sc.Amount
 			toUser := sc.ToUser
 			sent = append(sent, struct {

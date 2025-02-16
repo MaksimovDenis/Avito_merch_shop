@@ -17,9 +17,9 @@ type Shop interface {
 	UpdateSenderBalance(ctx context.Context, sender string, amount int) (senderId int, err error)
 	UpdateReceiverBalance(ctx context.Context, receiver string, amount int) (receiverId int, err error)
 	AddTransaction(ctx context.Context, senderId int, receiverId int, amount int) error
-	GetItemsByUserId(ctx context.Context, userId int) (*[]models.Items, error)
-	SentCoinsByUserId(ctx context.Context, userId int) (*[]models.SentCoins, error)
-	ReceivedCoinsByUserId(ctx context.Context, userId int) (*[]models.ReceivedCoins, error)
+	GetItemsByUserId(ctx context.Context, userId int) ([]models.Items, error)
+	SentCoinsByUserId(ctx context.Context, userId int) ([]models.SentCoins, error)
+	ReceivedCoinsByUserId(ctx context.Context, userId int) ([]models.ReceivedCoins, error)
 }
 
 type ShopRepo struct {
@@ -203,7 +203,9 @@ func (sr *ShopRepo) AddTransaction(ctx context.Context, senderId int, receiverId
 	return nil
 }
 
-func (sr *ShopRepo) GetItemsByUserId(ctx context.Context, userId int) (*[]models.Items, error) {
+func (sr *ShopRepo) GetItemsByUserId(ctx context.Context, userId int) ([]models.Items, error) {
+	var items []models.Items
+
 	builder := squirrel.Select("p.name as name", "sum(pu.quantity) as quantity").
 		PlaceholderFormat(squirrel.Dollar).
 		From("purchases as pu").
@@ -222,24 +224,24 @@ func (sr *ShopRepo) GetItemsByUserId(ctx context.Context, userId int) (*[]models
 		QueryRow: query,
 	}
 
-	var items []models.Items
-
 	err = sr.db.DB().ScanAllContext(ctx, &items, queryStruct, args...)
 	if err != nil {
 		sr.log.Error().Err(err).Msg("GetItemsByUserId: failed to scan rows")
 		return nil, errresponse.ErrResponse(err)
 	}
 
-	return &items, nil
+	return items, nil
 }
 
-func (sr *ShopRepo) SentCoinsByUserId(ctx context.Context, userId int) (*[]models.SentCoins, error) {
-	builder := squirrel.Select("us.username as to_user", "sum(amount) as amount").
+func (sr *ShopRepo) SentCoinsByUserId(ctx context.Context, userId int) ([]models.SentCoins, error) {
+	var sentCoins []models.SentCoins
+
+	builder := squirrel.Select("recipient.username as to_user", "SUM(t.amount) AS amount").
 		PlaceholderFormat(squirrel.Dollar).
-		From("users as us").
-		Join("transactions t on us.id = t.sender_id").
-		Where(squirrel.Eq{"us.id": userId}).
-		GroupBy("to_user")
+		From("transactions t").
+		Join("users recipient ON recipient.id = t.receiver_id").
+		Where(squirrel.Eq{"t.sender_id": userId}).
+		GroupBy("recipient.username")
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -252,24 +254,24 @@ func (sr *ShopRepo) SentCoinsByUserId(ctx context.Context, userId int) (*[]model
 		QueryRow: query,
 	}
 
-	var sendCoins []models.SentCoins
-
-	err = sr.db.DB().ScanAllContext(ctx, &sendCoins, queryStruct, args...)
+	err = sr.db.DB().ScanAllContext(ctx, &sentCoins, queryStruct, args...)
 	if err != nil {
 		sr.log.Error().Err(err).Msg("SentCoinsByUserId: failed to scan rows")
 		return nil, errresponse.ErrResponse(err)
 	}
 
-	return &sendCoins, nil
+	return sentCoins, nil
 }
 
-func (sr *ShopRepo) ReceivedCoinsByUserId(ctx context.Context, userId int) (*[]models.ReceivedCoins, error) {
-	builder := squirrel.Select("us.username as from_user", "sum(amount) as amount").
+func (sr *ShopRepo) ReceivedCoinsByUserId(ctx context.Context, userId int) ([]models.ReceivedCoins, error) {
+	var receivedCoins []models.ReceivedCoins
+
+	builder := squirrel.Select("sender.username AS from_user", "SUM(t.amount) AS amount").
 		PlaceholderFormat(squirrel.Dollar).
-		From("users as us").
-		Join("transactions t on us.id = t.receiver_id").
-		Where(squirrel.Eq{"us.id": userId}).
-		GroupBy("from_user")
+		From("transactions t").
+		Join("users sender ON sender.id = t.sender_id").
+		Where(squirrel.Eq{"t.receiver_id": userId}).
+		GroupBy("sender.username")
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -282,13 +284,11 @@ func (sr *ShopRepo) ReceivedCoinsByUserId(ctx context.Context, userId int) (*[]m
 		QueryRow: query,
 	}
 
-	var receivedCoins []models.ReceivedCoins
-
 	err = sr.db.DB().ScanAllContext(ctx, &receivedCoins, queryStruct, args...)
 	if err != nil {
 		sr.log.Error().Err(err).Msg("ReceivedCoinsByUserId: failed to scan rows")
 		return nil, errresponse.ErrResponse(err)
 	}
 
-	return &receivedCoins, nil
+	return receivedCoins, nil
 }

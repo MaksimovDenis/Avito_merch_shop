@@ -17,7 +17,7 @@ import (
 const durationAccessToken time.Duration = 24 * time.Hour
 
 type Authorization interface {
-	Auth(ctx context.Context, req *models.AuthReq) (string, error)
+	Auth(ctx context.Context, req models.AuthReq) (string, error)
 }
 
 type AuthService struct {
@@ -38,7 +38,7 @@ func newAuthService(
 	}
 }
 
-func (auth *AuthService) Auth(ctx context.Context, req *models.AuthReq) (string, error) {
+func (auth *AuthService) Auth(ctx context.Context, req models.AuthReq) (string, error) {
 	if err := validateData(req); err != nil {
 		return "", err
 	}
@@ -67,7 +67,7 @@ func (auth *AuthService) Auth(ctx context.Context, req *models.AuthReq) (string,
 
 }
 
-func (auth *AuthService) CreateUser(ctx context.Context, req *models.AuthReq) (string, error) {
+func (auth *AuthService) CreateUser(ctx context.Context, req models.AuthReq) (string, error) {
 	hashedPwd, err := util.HashPassword(req.Password)
 	if err != nil {
 		auth.log.Error().Err(err).Msg("failed to hash password")
@@ -85,7 +85,7 @@ func (auth *AuthService) CreateUser(ctx context.Context, req *models.AuthReq) (s
 	return auth.generateToken(newUser)
 }
 
-func (auth *AuthService) generateToken(user *models.User) (string, error) {
+func (auth *AuthService) generateToken(user models.User) (string, error) {
 	accessToken, _, err := auth.token.CreateToken(int64(user.Id), user.Username, durationAccessToken)
 	if err != nil {
 		auth.log.Error().Err(err).Msg("failed to create access token")
@@ -94,7 +94,7 @@ func (auth *AuthService) generateToken(user *models.User) (string, error) {
 	return accessToken, nil
 }
 
-func validateData(user *models.AuthReq) error {
+func validateData(user models.AuthReq) error {
 	switch {
 	case user.Username == user.Password:
 		return errors.New("логин и пароль совпадают")

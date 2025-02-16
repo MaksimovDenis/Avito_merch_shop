@@ -14,12 +14,12 @@ import (
 
 type Shop interface {
 	BuyItem(ctx context.Context, userId int, productName string) error
-	SendCoin(ctx context.Context, sender string, receiver string, amount int) error
+	SendCoins(ctx context.Context, sender string, receiver string, amount int) error
 	Info(ctx context.Context, username string) (
 		coins int,
-		items *[]models.Items,
-		sentCoins *[]models.SentCoins,
-		receivedCoins *[]models.ReceivedCoins,
+		items []models.Items,
+		sentCoins []models.SentCoins,
+		receivedCoins []models.ReceivedCoins,
 		err error,
 	)
 }
@@ -65,7 +65,7 @@ func (ss *ShopService) BuyItem(ctx context.Context, userId int, productName stri
 	return tx.Commit(ctx)
 }
 
-func (ss *ShopService) SendCoin(ctx context.Context, sender string, receiver string, amount int) error {
+func (ss *ShopService) SendCoins(ctx context.Context, sender string, receiver string, amount int) error {
 	if amount <= 0 {
 		return errors.New("сумма перевода должна быть положительным числом")
 	}
@@ -117,9 +117,9 @@ func (ss *ShopService) SendCoin(ctx context.Context, sender string, receiver str
 
 func (ss *ShopService) Info(ctx context.Context, username string) (
 	coins int,
-	items *[]models.Items,
-	sentCoins *[]models.SentCoins,
-	receivedCoins *[]models.ReceivedCoins,
+	items []models.Items,
+	sentCoins []models.SentCoins,
+	receivedCoins []models.ReceivedCoins,
 	err error,
 ) {
 	tx, err := ss.client.DB().BeginTx(ctx, pgx.TxOptions{})

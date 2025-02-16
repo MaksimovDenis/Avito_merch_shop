@@ -26,7 +26,7 @@ func (hdl *Handler) PostApiAuth(ctx *gin.Context) {
 	token, err := hdl.appService.Authorization.Auth(ctx, modelReq)
 	if err != nil {
 		hdl.log.Error().Err(err).Msg("failed to auth user")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный логин или пароль"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 
 		return
 	}

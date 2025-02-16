@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"regexp"
 	"time"
 
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/models"
@@ -15,6 +16,8 @@ import (
 )
 
 const durationAccessToken time.Duration = 24 * time.Hour
+
+var invalidCharsRegex = regexp.MustCompile(`[\"'<>!@#$%^&*()=+\[\]{}|\\/]`)
 
 type Authorization interface {
 	Auth(ctx context.Context, req models.AuthReq) (string, error)
@@ -62,7 +65,7 @@ func (auth *AuthService) Auth(ctx context.Context, req models.AuthReq) (string, 
 
 	if err = util.CheckPassword(req.Password, user.Password); err != nil {
 		auth.log.Error().Err(err).Msg("password mismatch")
-		return "", err
+		return "", errors.New("неверный логин или пароль")
 	}
 
 	return auth.generateToken(user)
@@ -72,7 +75,7 @@ func (auth *AuthService) CreateUser(ctx context.Context, req models.AuthReq) (st
 	hashedPwd, err := util.HashPassword(req.Password)
 	if err != nil {
 		auth.log.Error().Err(err).Msg("failed to hash password")
-		return "", err
+		return "", errors.New("неверный логин или пароль")
 	}
 
 	req.Password = hashedPwd
@@ -98,12 +101,16 @@ func (auth *AuthService) generateToken(user models.User) (string, error) {
 
 func validateData(user models.AuthReq) error {
 	switch {
-	case user.Username == user.Password:
-		return errors.New("логин и пароль совпадают")
 	case user.Username == "":
 		return errors.New("заполните поле логин")
 	case user.Password == "":
 		return errors.New("заполните поле пароль")
+	case user.Username == user.Password:
+		return errors.New("логин и пароль совпадают")
+	case invalidCharsRegex.MatchString(user.Username):
+		return errors.New("логин содержит недопустимые символы")
+	case invalidCharsRegex.MatchString(user.Password):
+		return errors.New("пароль содержит недопустимые символы")
 	default:
 		return nil
 	}

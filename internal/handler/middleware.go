@@ -30,7 +30,7 @@ func GetAuthMiddlewareFunc(tokenMaker *token.JWTMaker) func(ctx *gin.Context) {
 func verifyClaimsFromAuthHeader(ctx *gin.Context, tokenMaker token.JWTMaker) (*token.UserClaims, error) {
 	authHeader := ctx.Request.Header.Get("Authorization")
 	if authHeader == "" {
-		return nil, fmt.Errorf("autorizatoin header is missing")
+		return nil, fmt.Errorf("Неавторизован")
 	}
 
 	fields := strings.Fields(authHeader)

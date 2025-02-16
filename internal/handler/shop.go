@@ -12,7 +12,7 @@ func (hdl *Handler) GetApiBuyItem(ctx *gin.Context, productName string) {
 	claims, ok := ctx.Get("user")
 	if !ok {
 		hdl.log.Error().Msg("user claims not found in context")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Неавторизован"})
 
 		return
 	}
@@ -23,6 +23,8 @@ func (hdl *Handler) GetApiBuyItem(ctx *gin.Context, productName string) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	hdl.log.Info().Msgf("userId %v bought %v", userId, productName)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Товар приобретён"})
 }
@@ -40,7 +42,7 @@ func (hdl *Handler) PostApiSendCoin(ctx *gin.Context) {
 	claims, ok := ctx.Get("user")
 	if !ok {
 		hdl.log.Error().Msg("user claims not found in context")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Неавторизован"})
 
 		return
 	}
@@ -52,6 +54,8 @@ func (hdl *Handler) PostApiSendCoin(ctx *gin.Context) {
 		return
 	}
 
+	hdl.log.Info().Msgf("user %v sent %v coins to user %v", sender, sendCoinsReq.Amount, sendCoinsReq.ToUser)
+
 	ctx.JSON(http.StatusOK, gin.H{"message": "Перевод выполнен"})
 }
 
@@ -59,7 +63,7 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 	claims, ok := ctx.Get("user")
 	if !ok {
 		hdl.log.Error().Msg("user claims not found in context")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Неавторизован"})
 
 		return
 	}
@@ -146,6 +150,8 @@ func (hdl *Handler) GetApiInfo(ctx *gin.Context) {
 			Sent:     &sent,
 		},
 	}
+
+	hdl.log.Info().Msgf("user %v get info", username)
 
 	ctx.JSON(http.StatusOK, res)
 }

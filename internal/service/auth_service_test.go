@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
@@ -199,6 +200,54 @@ func TestAuth(t *testing.T) {
 				assert.Equal(t, tt.want, title)
 			} else {
 				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateData(t *testing.T) {
+	tests := []struct {
+		name    string
+		user    models.AuthReq
+		wantErr error
+	}{
+		{
+			name:    "Пустой логин",
+			user:    models.AuthReq{Username: "", Password: "password123"},
+			wantErr: errors.New("заполните поле логин"),
+		},
+		{
+			name:    "Пустой пароль",
+			user:    models.AuthReq{Username: "user1", Password: ""},
+			wantErr: errors.New("заполните поле пароль"),
+		},
+		{
+			name:    "Логин совпадает с паролем",
+			user:    models.AuthReq{Username: "user1", Password: "user1"},
+			wantErr: errors.New("логин и пароль совпадают"),
+		},
+		{
+			name:    "Логин содержит недопустимые символы",
+			user:    models.AuthReq{Username: "user!name", Password: "password123"},
+			wantErr: errors.New("логин содержит недопустимые символы"),
+		},
+		{
+			name:    "Пароль содержит недопустимые символы",
+			user:    models.AuthReq{Username: "username", Password: "pass@word"},
+			wantErr: errors.New("пароль содержит недопустимые символы"),
+		},
+		{
+			name:    "Корректные данные",
+			user:    models.AuthReq{Username: "validUser", Password: "securePass"},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateData(tt.user)
+			if (err != nil) != (tt.wantErr != nil) || (err != nil && err.Error() != tt.wantErr.Error()) {
+				t.Errorf("validateData() = %v, want %v", err, tt.wantErr)
 			}
 		})
 	}

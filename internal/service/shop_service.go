@@ -129,11 +129,10 @@ func (svc *ShopService) SendCoins(ctx context.Context, sender string, receiver s
 }
 
 // Info предоставляет информацию о пользователе.
-// 1. Начинаем транзакцию в БД.
-// 2. Получаем баланс пользователя.
-// 3. Извлекаем список его покупок.
-// 4. Получаем историю отправленных и полученных монет.
-// 5. Фиксируем транзакцию или откатывает при ошибке.
+// 1. Получаем баланс пользователя.
+// 2. Извлекаем список его покупок.
+// 3. Получаем историю отправленных и полученных монет.
+// 4. Возвращаем данные о пользователе.
 func (svc *ShopService) Info(ctx context.Context, username string) (
 	coins int,
 	items []models.Items,
@@ -141,40 +140,23 @@ func (svc *ShopService) Info(ctx context.Context, username string) (
 	receivedCoins []models.ReceivedCoins,
 	err error,
 ) {
-	tx, err := svc.client.DB().BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		svc.log.Error().Err(err).Msg("failed to start transaction")
-		return 0, nil, nil, nil, err
-	}
-
-	ctx = pg.MakeContextTx(ctx, tx)
-
 	userId, coins, err := svc.appRepository.Shop.UserBalanceByName(ctx, username)
 	if err != nil {
-		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
 	items, err = svc.appRepository.Shop.GetItemsByUserId(ctx, userId)
 	if err != nil {
-		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
 	sentCoins, err = svc.appRepository.Shop.SentCoinsByUserId(ctx, userId)
 	if err != nil {
-		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 
 	receivedCoins, err = svc.appRepository.Shop.ReceivedCoinsByUserId(ctx, userId)
 	if err != nil {
-		_ = tx.Rollback(ctx)
-		return 0, nil, nil, nil, err
-	}
-
-	if err = tx.Commit(ctx); err != nil {
-		_ = tx.Rollback(ctx)
 		return 0, nil, nil, nil, err
 	}
 

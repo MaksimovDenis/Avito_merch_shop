@@ -2,8 +2,11 @@ package pg
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/pg/prettier"
 
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgconn"
@@ -28,6 +31,8 @@ func NewDB(dbc *pgxpool.Pool) db.DB {
 }
 
 func (pg *pg) ScanOneContext(ctx context.Context, dest interface{}, quer db.Query, args ...interface{}) error {
+	LogQuery(ctx, quer, args...)
+
 	row, err := pg.QueryContext(ctx, quer, args...)
 	if err != nil {
 		return err
@@ -37,6 +42,8 @@ func (pg *pg) ScanOneContext(ctx context.Context, dest interface{}, quer db.Quer
 }
 
 func (pg *pg) ScanAllContext(ctx context.Context, dest interface{}, quer db.Query, args ...interface{}) error {
+	LogQuery(ctx, quer, args...)
+
 	rows, err := pg.QueryContext(ctx, quer, args...)
 	if err != nil {
 		return err
@@ -46,6 +53,8 @@ func (pg *pg) ScanAllContext(ctx context.Context, dest interface{}, quer db.Quer
 }
 
 func (pg *pg) ExecContext(ctx context.Context, quer db.Query, args ...interface{}) (pgconn.CommandTag, error) {
+	LogQuery(ctx, quer, args...)
+
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {
 		return tx.Exec(ctx, quer.QueryRow, args...)
@@ -55,6 +64,8 @@ func (pg *pg) ExecContext(ctx context.Context, quer db.Query, args ...interface{
 }
 
 func (pg *pg) QueryContext(ctx context.Context, quer db.Query, args ...interface{}) (pgx.Rows, error) {
+	LogQuery(ctx, quer, args...)
+
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {
 		return tx.Query(ctx, quer.QueryRow, args...)
@@ -64,6 +75,8 @@ func (pg *pg) QueryContext(ctx context.Context, quer db.Query, args ...interface
 }
 
 func (pg *pg) QueryRowContext(ctx context.Context, quer db.Query, args ...interface{}) pgx.Row {
+	LogQuery(ctx, quer, args...)
+
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
 	if ok {
 		return tx.QueryRow(ctx, quer.QueryRow, args...)
@@ -86,4 +99,13 @@ func (pg *pg) Close() {
 
 func MakeContextTx(ctx context.Context, tx pgx.Tx) context.Context {
 	return context.WithValue(ctx, TxKey, tx)
+}
+
+func LogQuery(ctx context.Context, q db.Query, args ...any) {
+	prettyQuery := prettier.Pretty(q.QueryRow, prettier.PlaceholderDollar, args...)
+	log.Println(
+		ctx,
+		fmt.Sprintf("sql: %s", q.Name),
+		fmt.Sprintf("query: %s", prettyQuery),
+	)
 }

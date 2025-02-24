@@ -7,8 +7,10 @@ import (
 	db "github.com/MaksimovDenis/Avito_merch_shop/internal/client"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/pg"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/client/db/transaction"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/closer"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/config"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/handler"
+	"github.com/MaksimovDenis/Avito_merch_shop/internal/metrics"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/repository"
 	"github.com/MaksimovDenis/Avito_merch_shop/internal/service"
 	"github.com/MaksimovDenis/Avito_merch_shop/pkg/token"
@@ -32,6 +34,8 @@ type serviceProvider struct {
 	log zerolog.Logger
 
 	handler *handler.Handler
+
+	metrics *metrics.Metrics
 }
 
 func newServiceProvider() *serviceProvider {
@@ -58,6 +62,11 @@ func (srv *serviceProvider) initLogger() zerolog.Logger {
 	logger := zerolog.New(multiWriter).Level(logLevel).With().Timestamp().Logger()
 
 	return logger
+}
+
+func (srv *serviceProvider) initMetric() *metrics.Metrics {
+	srv.metrics = metrics.New()
+	return srv.metrics
 }
 
 func (srv *serviceProvider) PGConfig() config.PGConfig {
@@ -110,6 +119,11 @@ func (srv *serviceProvider) DBClient(ctx context.Context) db.Client {
 		if err != nil {
 			log.Fatal().Err(err).Msg("ping error")
 		}
+
+		closer.Add(func() error {
+			client.Close()
+			return nil
+		})
 
 		srv.dbClient = client
 	}
@@ -165,6 +179,7 @@ func (srv *serviceProvider) AppHandler(ctx context.Context) *handler.Handler {
 			*srv.AppService(ctx),
 			*srv.TokenMaker(ctx),
 			srv.log.With().Str("module", "api").Logger(),
+			srv.initMetric(),
 		)
 	}
 

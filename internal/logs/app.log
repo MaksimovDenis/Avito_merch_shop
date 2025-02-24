@@ -1,0 +1,21 @@
+{"level":"warn","module":"repository","username":"user1","time":"2025-02-20T22:15:24+03:00","message":"GetUser: user not found"}
+{"level":"info","module":"service","time":"2025-02-20T22:15:24+03:00","message":"user user1 has been created"}
+{"level":"info","module":"api","time":"2025-02-20T22:16:09+03:00","message":"userId 1 bought book"}
+{"level":"info","module":"api","time":"2025-02-24T20:10:58+03:00","message":"userId 1 bought book"}
+{"level":"error","module":"repository","error":"no rows in result set","time":"2025-02-24T20:11:06+03:00","message":"UpdateBalanceForPurchase: failed to update user data"}
+{"level":"info","module":"api","time":"2025-02-24T20:11:12+03:00","message":"userId 1 bought pen"}
+{"level":"warn","module":"repository","username":"user2","time":"2025-02-24T20:11:25+03:00","message":"GetUser: user not found"}
+{"level":"info","module":"service","time":"2025-02-24T20:11:25+03:00","message":"user user2 has been created"}
+{"level":"error","module":"service","error":"crypto/bcrypt: hashedPassword is not the hash of the given password","time":"2025-02-24T20:11:32+03:00","message":"password mismatch"}
+{"level":"error","module":"api","error":"неверный логин или пароль","time":"2025-02-24T20:11:32+03:00","message":"failed to auth user"}
+{"level":"info","module":"api","time":"2025-02-24T20:11:39+03:00","message":"userId 2 bought pen"}
+{"level":"info","module":"api","time":"2025-02-24T20:11:41+03:00","message":"userId 2 bought pen"}
+{"level":"info","module":"api","time":"2025-02-24T20:11:42+03:00","message":"userId 2 bought pen"}
+{"level":"info","module":"api","time":"2025-02-24T20:11:47+03:00","message":"userId 2 bought t-shirt"}
+{"level":"info","module":"api","time":"2025-02-24T20:12:04+03:00","message":"user user2 sent 100 coins to user user1"}
+{"level":"info","module":"api","time":"2025-02-24T20:12:05+03:00","message":"user user2 sent 100 coins to user user1"}
+{"level":"error","module":"service","time":"2025-02-24T20:12:10+03:00","message":"not enough coins for transaction"}
+{"level":"info","module":"api","time":"2025-02-24T20:12:19+03:00","message":"user user2 get info"}
+{"level":"info","module":"api","time":"2025-02-24T20:12:59+03:00","message":"user user1 get info"}
+{"level":"info","module":"api","time":"2025-02-24T20:13:10+03:00","message":"user user1 sent 1000 coins to user user2"}
+{"level":"info","module":"api","time":"2025-02-24T20:13:12+03:00","message":"user user1 get info"}
